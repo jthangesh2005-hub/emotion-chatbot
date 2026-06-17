@@ -15,7 +15,7 @@ from dotenv import load_dotenv
 from groq import Groq
 load_dotenv()
 from fastapi import FastAPI, Depends, HTTPException
-# -------------------- DATABASE --------------------
+
 Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -33,7 +33,7 @@ def get_db():
     finally:
         db.close()
 
-# -------------------- AUTH APIs --------------------
+
 @app.post("/register")
 def register(user: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == user.username).first()
@@ -64,7 +64,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
         "username": db_user.username
     }
 
-# -------------------- EMOTION MODEL --------------------
+
 MODEL_PATH = "emotion_bert_model"
 
 tokenizer = AutoTokenizer.from_pretrained(MODEL_PATH)
@@ -115,7 +115,7 @@ def predict_emotion(req: EmotionRequest):
     return {"emotion": labels[pred_id]}
 @app.post("/chat")
 def chat(req: EmotionRequest):
-    # 🔐 Auto-delete chats older than 7 days
+    
     db = SessionLocal()
     seven_days_ago = datetime.utcnow() - timedelta(days=7)
     db.query(Chat)\
@@ -125,7 +125,6 @@ def chat(req: EmotionRequest):
 
     db.commit()
 
-    # Emotion detection
     inputs = tokenizer(
         req.text,
         return_tensors="pt",
@@ -139,7 +138,7 @@ def chat(req: EmotionRequest):
     pred_id = torch.argmax(outputs.logits, dim=1).item()
     emotion = labels[pred_id]
 
-    # 📚 Fetch last 5 chats
+    
     recent_chats = (
         db.query(Chat)
         .filter(Chat.user_id == req.user_id)
@@ -153,7 +152,7 @@ def chat(req: EmotionRequest):
         history += f"User: {chat_item.message}\n"
         history += f"Bot: {chat_item.reply}\n"
 
-    # 🤖 LLM response WITH history
+   
     reply = groq_response(req.text, emotion, history)
 
     chat_entry = Chat(
