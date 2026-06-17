@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Emotion Chatbot</title>
+<link rel="icon" type="image/png" href="/static/logo.png">
+
+<style>
+body {
+    margin: 0;
+    height: 100vh;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: linear-gradient(135deg, #7a84af, #745890);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; 
+}
+.card {
+    background: white;
+    width: 70vw;
+    max-width: 900px;
+    height: 85vh;
+
+    display: flex;
+    flex-direction: column;
+
+    border-radius: 16px;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+    padding: 25px;
+
+    overflow: hidden; /* 🔥 prevents input from escaping */
+}
+
+
+
+h2 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+button {
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.login {
+    background:  #7a84af;
+    color: white;
+}
+
+.register {
+    background: #eaeaea;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+#authMsg {
+    text-align: center;
+    color: red;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+#chatBox {
+    display: none;
+    flex-direction: column;
+}
+
+.messages {
+    flex: 1;                 /* 🔥 takes remaining space */
+    overflow-y: auto;        /* 🔥 scroll inside */
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background: #fafafa;
+    margin-bottom: 12px;
+    min-height: 200px; 
+}
+
+
+.user, .bot {
+    max-width: 80%;
+    line-height: 1.5;
+    padding: 8px 12px;
+    border-radius: 10px;
+    margin: 6px 0;
+}
+
+.user {
+    margin-left: auto;
+    background: #7a84af;
+    color: white;
+    text-align: left;
+}
+
+.bot {
+    margin-right: auto;
+    background: #eaeaea;
+    color: #333;
+}
+
+.chat-input {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding-top: 10px;
+}
+
+
+.chat-input textarea {
+    flex: 1;
+    resize: none;
+    padding: 12px;
+     height:50px;   
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+    font-family: inherit;
+    width: 120px;  
+}
+
+
+.chat-input input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+}
+.chat-input button {
+    padding: 12px 20px;
+    border-radius: 8px;
+    width: 120px;  
+    border: none;
+    height: 50px; 
+    background: #7a84af;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card" id="authBox">
+    <h2>Emotion Response System</h2>
+
+    <input id="username" placeholder="Username" autocomplete="username">
+
+    <div style="position: relative;">
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password">
+        <span onclick="togglePassword()"
+              style="
+                position:absolute;
+                right:12px;
+                top:50%;
+                transform:translateY(-50%);
+                cursor:pointer;
+                user-select:none;
+              ">👁</span>
+    </div>
+
+    <button class="login" onclick="login()">Login</button>
+    <button class="register" onclick="register()">Register</button>
+
+    <div id="authMsg"></div>
+</div>
+
+
+<div class="card" id="chatBox"style="display:none;">
+    <h2>Emotion Response System💬</h2>
+    <div class="messages" id="messages"></div>
+    <div class="chat-input">
+    <textarea id="text" placeholder="Type your message..."></textarea>
+    <button onclick="send()">Send</button>
+</div>
+
+</div>
+
+
+<script>
+function togglePassword() {
+    const pwd = document.getElementById("password");
+    pwd.type = pwd.type === "password" ? "text" : "password";
+}
+
+async function register() {
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
+
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!username || !password) {
+        document.getElementById("authMsg").innerText = "Please fill all fields";
+        return;
+    }
+
+    const res = await fetch("/register", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
+    });
+
+    if (res.ok) {
+        document.getElementById("authMsg").style.color = "green";
+        document.getElementById("authMsg").innerText =
+            "Registered successfully. Please login.";
+
+        usernameInput.value = "";
+        passwordInput.value = "";
+        usernameInput.focus();
+    } else {
+        document.getElementById("authMsg").style.color = "red";
+        document.getElementById("authMsg").innerText = "Username already exists";
+    }
+}
+
+async function login() {
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    const res = await fetch("/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+        localStorage.setItem("user_id", data.user_id);
+        document.getElementById("authBox").style.display = "none";
+        document.getElementById("chatBox").style.display = "flex";
+        loadHistory();
+    } else {
+        document.getElementById("authMsg").innerText = data.detail || "Login failed";
+    }
+}
+
+async function loadHistory() {
+    const user_id = localStorage.getItem("user_id");
+    if (!user_id) return;
+
+    const res = await fetch(`/chat-history/${user_id}`);
+    if (!res.ok) return;
+
+    const data = await res.json();
+    const messages = document.getElementById("messages");
+    messages.innerHTML = "";
+
+    if (data.length === 0) {
+        messages.innerHTML = `<div class="bot">Start a new conversation 👋</div>`;
+        return;
+    }
+
+    data.forEach(item => {
+        messages.innerHTML += `<div class="user">${item.message}</div>`;
+        messages.innerHTML += `<div class="bot">${item.reply}</div>`;
+    });
+
+    messages.scrollTop = messages.scrollHeight;
+}
+
+async function send() {
+    const input = document.getElementById("text");
+    const text = input.value.trim();
+    if (!text) return;
+
+    const messages = document.getElementById("messages");
+    messages.innerHTML += `<div class="user">${text}</div>`;
+    input.value = "";
+
+    const response = await fetch("/chat", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+            text: text,
+            user_id: Number(localStorage.getItem("user_id"))
+        })
+    });
+
+    const data = await response.json();
+    messages.innerHTML += `<div class="bot">${data.reply}</div>`;
+    messages.scrollTop = messages.scrollHeight;
+}
+
+document.getElementById("text").addEventListener("keydown", function(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        send();
+    }
+});
+</script>
+
+
+</body>
+</html>
+

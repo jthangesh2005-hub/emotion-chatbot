@@ -1,0 +1,14 @@
+# Ignore secrets
+.env
+
+# Ignore database
+users.db
+
+# Ignore model files
+emotion_bert_model/
+
+# Ignore virtual environment
+tf_env/
+# Python cache
+__pycache__/
+*.pyc
